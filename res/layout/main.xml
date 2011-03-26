@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent" android:baselineAligned="false" android:orientation="vertical">
+    <AnalogClock android:id="@+id/analogClock1" android:layout_weight="1" android:layout_gravity="top" android:layout_width="match_parent" android:layout_height="wrap_content"></AnalogClock>
+    <Button android:layout_height="wrap_content" android:text="@string/ledbutton" android:layout_width="wrap_content" android:id="@+id/ledbutton"></Button>
+    <ListView android:id="@+id/listView1" android:layout_height="wrap_content" android:layout_width="match_parent"></ListView>
+</LinearLayout>
