@@ -3,11 +3,15 @@
  */
 package ioio.retroid;
 
-import ioio.api.DigitalInput;
 import ioio.api.DigitalOutput;
 import ioio.api.IOIOLib;
+import ioio.api.PwmOutput;
 import ioio.lib.Constants;
 import ioio.lib.IOIOImpl;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
@@ -52,6 +56,12 @@ public class RetroidService extends Service {
 			else if ("retroid.intent.action.PHONE_RING_STOP".equals(intent.getAction())) {
 				action = "ring_stop";
 			}
+			else if ("retroid.intent.action.SMS_INTENT".equals(intent.getAction())) {
+				action = "sms";
+			}
+			else if ("retroid.intent.action.SNOOZE".equals(intent.getAction())) {
+				action = "snooze";
+			}
 			else {
 				action = null;
 			}
@@ -72,6 +82,8 @@ public class RetroidService extends Service {
 	
 	
 	private class IOIOThread extends Thread {
+		public int[] led_pins = {3,4,5,6,10,11,12,13,14,28,29,30};
+		public int engine_pin = 31;
 		@Override
 		public void run() {
 			Log.i(LOG_TAG,"IOIO Thread Started");
@@ -82,18 +94,32 @@ public class RetroidService extends Service {
 					ioio.waitForConnect();
 					Log.i(LOG_TAG, "Connected to IOIO");
 					DigitalOutput led = ioio.openDigitalOutput(Constants.LED_PIN,true);
-					DigitalInput in = ioio.openDigitalInput(17);
-					ioio.openDigitalOutput(12,true).write(false);
+					List<DigitalOutput> leds = new ArrayList<DigitalOutput>();
+					for (int pin : led_pins) {
+						leds.add(ioio.openDigitalOutput(pin, true));
+					}
+					PwmOutput engine = ioio.openPwmOutput(engine_pin, 100);
+					
+					float engineStrength = 0.4f;
+					float engineModifier = 0.01f;
+					
 					led.write(false);
-					Thread.sleep(300);
+					Thread.sleep(200);
+					led.write(true);
+					Thread.sleep(200);
+					led.write(false);
+					Thread.sleep(200);
 					led.write(true);
 					
 					while(loop){
 						if ("alarm".equals(action)) {
-							boolean input = in.read();
-							if (!input) action = "snooze";
-							led.write(ledStatus);
-							ledStatus = false;
+							engine.setDutyCycle(engineStrength);
+							engineStrength += engineModifier;
+							if (engineStrength >= 1){
+								engineModifier *= -1;
+							} else if (engineStrength <= 0.3f){
+								engineModifier *= -1;
+							}
 						}
 						else if ("snooze".equals(action)) {
 							Intent broadcastIntent = new Intent();
@@ -104,23 +130,45 @@ public class RetroidService extends Service {
 						else if ("ring_start".equals(action)) {
 							led.write(ledStatus);
 							ledStatus ^= true;
+							for (DigitalOutput digitalOutput : leds) {
+								digitalOutput.write(true);
+							}
 						}
 						else if ("ring_stop".equals(action)) {
 							action = null;
 						}
-						else if ("blink".equals(action)){
-							boolean input = in.read();
-							if (!input) action = null;
+						else if ("sms".equals(action)) {
 							led.write(ledStatus);
 							ledStatus ^= true;
+							for (DigitalOutput digitalOutput : leds) {
+								digitalOutput.write(ledStatus);
+							}
+							engine.setDutyCycle(0.2f);
+							sleep(500);
+							engine.setDutyCycle(0);
+						}
+						else if ("blink".equals(action)){
+							engine.setDutyCycle((float) 0.8);
+							led.write(ledStatus);
+							ledStatus ^= true;
+							for (int i=0;i<11;i++){
+								leds.get(i).write(false);
+								leds.get(i+1).write(true);
+								Thread.sleep(100);
+							}
+							leds.get(11).write(false);
+							leds.get(0).write(true);
+							
 							
 						} else {
-							boolean input = in.read();
-							if (!input) action = "blink";
 							led.write(true);
+							for (DigitalOutput digitalOutput : leds) {
+								digitalOutput.write(false);
+							}
+							engine.setDutyCycle(0);
 						}
 						Thread.sleep(100);
-						Log.i(LOG_TAG,"loop action = " + action);
+//						Log.i(LOG_TAG,"loop action = " + action);
 					}
 				} catch (Exception e) {
 					Log.e(LOG_TAG,"Exception in IOIO Thread " + e.getMessage());
@@ -237,5 +285,34 @@ public class RetroidService extends Service {
 //	public IBinder onBind(Intent intent) {
 //		// TODO Auto-generated method stub
 //		return null;
+////	}
+//	
+//	DigitalOutput snoozeOut;
+//	DigitalInput snoozeIn;
+//	snoozeOut = ioio.openDigitalOutput(11,true);
+//	
+//	while (true) {
+//		int cycle_len = 0;
+//		
+//		snoozeOut.write(false);
+//		Thread.sleep(200);
+//
+//		snoozeOut.close();
+//		snoozeIn = ioio.openDigitalInput(11,DigitalInputMode.FLOATING);
+//		
+//		while(!snoozeIn.read()) {
+//			cycle_len++;
+//			if (cycle_len % 100 == 0) {
+//				led.write(ledStatus);
+//				ledStatus ^= true;
+//			}
+//		} 
+//		
+//		snoozeIn.close();
+//		snoozeOut = ioio.openDigitalOutput(11,true);
+//		
+//		Log.i(LOG_TAG, "Input: " + cycle_len);
+//		cycle_len = 0;
 //	}
+
 }
