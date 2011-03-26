@@ -44,6 +44,10 @@ public class Retroid extends Activity {
 			}
 		});
 		
+		Intent broadcastIntent = new Intent();
+		broadcastIntent.setAction("com.android.deskclock.ALARM_ALERT");
+		sendBroadcast(broadcastIntent);
+		
 //		context = this;
 	}
 	
@@ -72,11 +76,13 @@ public class Retroid extends Activity {
 		            //See if the new state is 'ringing'
 		            if(newPhoneState != null && newPhoneState.equals(TelephonyManager.EXTRA_STATE_RINGING)) {
 		            	Log.i(LOG_TAG,"Phone ringing");
-		            	retroidIntent.setAction("retroid.intent.action.PHONE_START");
+		            	retroidIntent.setAction("retroid.intent.action.PHONE_RING_START");
 						startService(retroidIntent);
 		            }
 		            else {
 		            	Log.i(LOG_TAG,"Phone not ringing");
+		            	retroidIntent.setAction("retroid.intent.action.PHONE_RING_STOP");
+						startService(retroidIntent);
 		            }
 		            lastKnownPhoneState = newPhoneState;
 		        }
