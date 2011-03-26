@@ -10,6 +10,7 @@ import ioio.lib.Constants;
 import ioio.lib.IOIOImpl;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 import android.app.Service;
@@ -103,6 +104,9 @@ public class RetroidService extends Service {
 					float engineStrength = 0.4f;
 					float engineModifier = 0.01f;
 					
+					int smsLoopsDefault = 20;
+					int smsLoops = smsLoopsDefault;
+					
 					led.write(false);
 					Thread.sleep(200);
 					led.write(true);
@@ -110,6 +114,8 @@ public class RetroidService extends Service {
 					led.write(false);
 					Thread.sleep(200);
 					led.write(true);
+					
+					
 					
 					while(loop){
 						if ("alarm".equals(action)) {
@@ -138,14 +144,18 @@ public class RetroidService extends Service {
 							action = null;
 						}
 						else if ("sms".equals(action)) {
+							if (smsLoops <= 0){
+								action = null;
+								smsLoops = smsLoopsDefault;
+							} else {
+								smsLoops -= 1;
+							}
 							led.write(ledStatus);
 							ledStatus ^= true;
 							for (DigitalOutput digitalOutput : leds) {
 								digitalOutput.write(ledStatus);
 							}
-							engine.setDutyCycle(0.2f);
-							sleep(500);
-							engine.setDutyCycle(0);
+							engine.setDutyCycle(0.3f);
 						}
 						else if ("blink".equals(action)){
 							engine.setDutyCycle((float) 0.8);
@@ -165,6 +175,8 @@ public class RetroidService extends Service {
 							for (DigitalOutput digitalOutput : leds) {
 								digitalOutput.write(false);
 							}
+							int hour = Calendar.getInstance().get(Calendar.HOUR);
+							leds.get(hour).write(true);
 							engine.setDutyCycle(0);
 						}
 						Thread.sleep(100);
