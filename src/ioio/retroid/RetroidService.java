@@ -150,6 +150,14 @@ public class RetroidService extends Service {
 							for (DigitalOutput digitalOutput : leds) {
 								digitalOutput.write(true);
 							}
+							for(int i=0;i<3;i++){
+								engine.setDutyCycle(0.5f);
+								sleep(300);
+								engine.setDutyCycle(0);
+								sleep(200);
+							}
+							sleep(600);
+							
 						}
 						else if ("ring_stop".equals(action)) {
 							action = null;
