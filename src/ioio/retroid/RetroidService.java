@@ -12,6 +12,7 @@ import ioio.lib.IOIOImpl;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Random;
 
 import android.app.Service;
 import android.content.Intent;
@@ -83,7 +84,8 @@ public class RetroidService extends Service {
 	
 	
 	private class IOIOThread extends Thread {
-		public int[] led_pins = {3,4,5,6,10,11,12,13,14,28,29,30};
+		public int[] led_pins = {13,28,14,11,10,12,6,5,3,4,30,29};
+		
 		public int engine_pin = 31;
 		@Override
 		public void run() {
@@ -107,6 +109,12 @@ public class RetroidService extends Service {
 					int smsLoopsDefault = 20;
 					int smsLoops = smsLoopsDefault;
 					
+					int current_led = 0;
+					
+					int fill_led = 0;
+					int fill_led_offset = 0;
+					boolean fill_command = true;
+					
 					led.write(false);
 					Thread.sleep(200);
 					led.write(true);
@@ -116,16 +124,19 @@ public class RetroidService extends Service {
 					led.write(true);
 					
 					
-					
+					try{
 					while(loop){
 						if ("alarm".equals(action)) {
 							engine.setDutyCycle(engineStrength);
 							engineStrength += engineModifier;
-							if (engineStrength >= 1){
-								engineModifier *= -1;
-							} else if (engineStrength <= 0.3f){
+							if (engineStrength >= 1 || (engineStrength <= 0.3f)){
 								engineModifier *= -1;
 							}
+							for (DigitalOutput digitalOutput : leds) {
+								digitalOutput.write(leds.get(current_led) == digitalOutput);
+							}
+							current_led = (current_led+1) % 12;
+							
 						}
 						else if ("snooze".equals(action)) {
 							Intent broadcastIntent = new Intent();
@@ -158,34 +169,35 @@ public class RetroidService extends Service {
 							engine.setDutyCycle(0.3f);
 						}
 						else if ("blink".equals(action)){
-							engine.setDutyCycle((float) 0.8);
+							engine.setDutyCycle((float) 0.2);
 							led.write(ledStatus);
 							ledStatus ^= true;
-							for (int i=0;i<11;i++){
-								leds.get(i).write(false);
-								leds.get(i+1).write(true);
-								Thread.sleep(100);
+							
+							
+							leds.get((fill_led_offset + fill_led)%12).write(fill_command);
+							leds.get((12-fill_led+fill_led_offset)%12).write(fill_command);
+							if (fill_led == 6) {
+								fill_command ^= true;
+								if (fill_command==true) fill_led_offset= new Random().nextInt(12);
 							}
-							leds.get(11).write(false);
-							leds.get(0).write(true);
-							
-							
+							fill_led = (fill_led+1)%7;
+
 						} else {
 							led.write(true);
 							for (DigitalOutput digitalOutput : leds) {
-								digitalOutput.write(false);
+								digitalOutput.write(leds.get(Calendar.getInstance().get(Calendar.HOUR)) == digitalOutput);
 							}
-							int hour = Calendar.getInstance().get(Calendar.HOUR);
-							leds.get(hour).write(true);
 							engine.setDutyCycle(0);
 						}
 						Thread.sleep(100);
 //						Log.i(LOG_TAG,"loop action = " + action);
+					} } finally {
 					}
 				} catch (Exception e) {
 					Log.e(LOG_TAG,"Exception in IOIO Thread " + e.getMessage());
 				} finally{
 					Log.i(LOG_TAG,"IOIO Thread : finally");
+
 					ioio.disconnect();
 				}
 			}

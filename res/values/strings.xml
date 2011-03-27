@@ -3,4 +3,5 @@
     <string name="hello">Hello World, Retroid!</string>
     <string name="app_name">Retroid</string>
     <string name="ledbutton">Start Led</string>
+    <string name="stopled">stop led</string>
 </resources>
